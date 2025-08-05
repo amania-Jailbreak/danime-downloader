@@ -53,6 +53,7 @@ jobs:
                   pip install pyinstaller
 
             - name: Create PyInstaller spec file
+              shell: bash
               run: |
                   cat > DAnimeDownloader.spec << 'EOF'
                   # -*- mode: python ; coding: utf-8 -*-
