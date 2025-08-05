@@ -1,0 +1,4 @@
+pywidevine
+beautifulsoup4
+requests
+tqdm
