@@ -1,4 +1,4 @@
-# DAnime 　 Downloader
+# DAnime Downloader
 
 d アニメストアから mp4 ファイルをダウンロードします
 
