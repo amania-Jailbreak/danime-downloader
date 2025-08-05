@@ -1,0 +1,12 @@
+# PyInstaller build requirements
+# 本体の依存関係
+pywidevine
+beautifulsoup4
+requests
+tqdm
+
+# ビルド用
+pyinstaller
+
+# オプション：UPX圧縮（サイズ削減）
+# upx-ucl

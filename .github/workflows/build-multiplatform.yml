@@ -1,0 +1,143 @@
+name: Build Multi-Platform Executables
+
+on:
+    push:
+        branches: [main]
+        tags: ["v*"]
+    pull_request:
+        branches: [main]
+    workflow_dispatch:
+
+jobs:
+    build:
+        strategy:
+            matrix:
+                os: [windows-latest, ubuntu-latest, macos-latest]
+                include:
+                    - os: windows-latest
+                      executable_name: DAnimeDownloader.exe
+                      artifact_name: DAnimeDownloader-windows
+                    - os: ubuntu-latest
+                      executable_name: DAnimeDownloader
+                      artifact_name: DAnimeDownloader-linux
+                    - os: macos-latest
+                      executable_name: DAnimeDownloader
+                      artifact_name: DAnimeDownloader-macos
+
+        runs-on: ${{ matrix.os }}
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: "3.11"
+
+            - name: Install system dependencies (Ubuntu)
+              if: matrix.os == 'ubuntu-latest'
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y ffmpeg
+
+            - name: Install system dependencies (macOS)
+              if: matrix.os == 'macos-latest'
+              run: |
+                  brew install ffmpeg
+
+            - name: Install Python dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install -r requirements.txt
+                  pip install pyinstaller
+
+            - name: Create PyInstaller spec file
+              run: |
+                  cat > DAnimeDownloader.spec << 'EOF'
+                  # -*- mode: python ; coding: utf-8 -*-
+
+                  block_cipher = None
+
+                  a = Analysis(
+                      ['main.py'],
+                      pathex=[],
+                      binaries=[],
+                      datas=[],
+                      hiddenimports=[
+                          'pywidevine',
+                          'pywidevine.cdm',
+                          'pywidevine.device',
+                          'pywidevine.pssh',
+                          'bs4',
+                          'requests',
+                          'tqdm',
+                          'xml.etree.ElementTree',
+                          'unicodedata',
+                      ],
+                      hookspath=[],
+                      hooksconfig={},
+                      runtime_hooks=[],
+                      excludes=[],
+                      win_no_prefer_redirects=False,
+                      win_private_assemblies=False,
+                      cipher=block_cipher,
+                      noarchive=False,
+                  )
+
+                  pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+
+                  exe = EXE(
+                      pyz,
+                      a.scripts,
+                      a.binaries,
+                      a.zipfiles,
+                      a.datas,
+                      [],
+                      name='${{ matrix.executable_name }}',
+                      debug=False,
+                      bootloader_ignore_signals=False,
+                      strip=False,
+                      upx=True,
+                      upx_exclude=[],
+                      runtime_tmpdir=None,
+                      console=True,
+                      disable_windowed_traceback=False,
+                      argv_emulation=False,
+                      target_arch=None,
+                      codesign_identity=None,
+                      entitlements_file=None,
+                      icon=None,
+                  )
+                  EOF
+
+            - name: Build executable with PyInstaller
+              run: |
+                  pyinstaller DAnimeDownloader.spec
+
+            - name: Test executable (Windows)
+              if: matrix.os == 'windows-latest'
+              run: |
+                  dist\${{ matrix.executable_name }} --help
+
+            - name: Test executable (Unix)
+              if: matrix.os != 'windows-latest'
+              run: |
+                  chmod +x dist/${{ matrix.executable_name }}
+                  ./dist/${{ matrix.executable_name }} --help
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v3
+              with:
+                  name: ${{ matrix.artifact_name }}
+                  path: dist/${{ matrix.executable_name }}
+
+            - name: Upload to Release
+              if: startsWith(github.ref, 'refs/tags/')
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: dist/${{ matrix.executable_name }}
+                  draft: false
+                  prerelease: false
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,52 @@
+name: Build Executable
+
+on:
+    push:
+        branches: [main]
+        tags: ["v*"]
+    pull_request:
+        branches: [main]
+    workflow_dispatch:
+
+jobs:
+    build:
+        runs-on: windows-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: "3.11"
+
+            - name: Install dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install -r requirements.txt
+                  pip install pyinstaller
+
+            - name: Build executable
+              run: |
+                  pyinstaller --onefile --console --name "DAnimeDownloader" main.py
+
+            - name: Test executable
+              run: |
+                  dist\DAnimeDownloader.exe --help
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v3
+              with:
+                  name: DAnimeDownloader-windows
+                  path: dist/DAnimeDownloader.exe
+
+            - name: Create Release
+              if: startsWith(github.ref, 'refs/tags/')
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: dist/DAnimeDownloader.exe
+                  draft: false
+                  prerelease: false
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

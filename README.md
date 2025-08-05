@@ -56,6 +56,52 @@ pip install -r requirements.txt
 
 4. Widevine デバイスファイル（`device.wvd`）を配置
 
+## EXE ファイルのビルド
+
+### 自動ビルド（GitHub Actions）
+
+このリポジトリでは、GitHub Actions を使用して自動的に EXE ファイルをビルドします：
+
+-   **プッシュ時**: `main`ブランチへのプッシュ時に自動ビルド
+-   **タグ時**: `v*`タグ作成時にリリースを自動作成
+-   **手動実行**: GitHub 上で手動実行も可能
+
+ビルドされた EXE ファイルは以下からダウンロード可能：
+
+-   Actions タブの「Artifacts」から
+-   Releases ページ（タグ作成時）
+
+### ローカルビルド
+
+#### Windows
+
+```cmd
+# バッチファイルを実行
+build.bat
+```
+
+#### Linux/macOS
+
+```bash
+# シェルスクリプトを実行
+chmod +x build.sh
+./build.sh
+```
+
+#### 手動ビルド
+
+```bash
+# 依存関係をインストール
+pip install pyinstaller
+
+# ビルド実行
+pyinstaller DAnimeDownloader.spec
+
+# 生成されたEXEファイル
+# Windows: dist/DAnimeDownloader.exe
+# Linux/macOS: dist/DAnimeDownloader
+```
+
 ## 使用方法
 
 ### 基本的な使用方法
