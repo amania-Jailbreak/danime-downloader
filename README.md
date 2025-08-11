@@ -31,8 +31,8 @@ pip install pywidevine beautifulsoup4 requests tqdm
 1. リポジトリをクローン：
 
 ```bash
-git clone https://github.com/your-repo/DAnimePlus.git
-cd DAnimePlus
+git clone https://github.com/amania-Jailbreak/danime-downloader.git
+cd danime-downloader
 ```
 
 2. 依存関係をインストール：
@@ -45,7 +45,7 @@ pip install -r requirements.txt
 
 **FFmpeg:**
 
--   Windows: https://ffmpeg.org/download.html からダウンロード
+-   Windows: `winget install ffmpeg`
 -   macOS: `brew install ffmpeg`
 -   Linux: `sudo apt install ffmpeg`
 
