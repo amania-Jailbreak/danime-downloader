@@ -645,8 +645,9 @@ class DAnimeDownloader:
                         ["--key", f"{key_info['kid']}:{key_info['key']}"]
                     )
                 cmd_decrypt_video.extend([encrypted_video, decrypted_video])
+                cmd = " ".join(cmd_decrypt_video)
                 result = subprocess.run(
-                    cmd_decrypt_video,
+                    cmd,
                     capture_output=True,
                     text=True,
                     shell=True,
@@ -667,9 +668,9 @@ class DAnimeDownloader:
                         ["--key", f"{key_info['kid']}:{key_info['key']}"]
                     )
                 cmd_decrypt_audio.extend([encrypted_audio, decrypted_audio])
-
+                cmd = " ".join(cmd_decrypt_audio)
                 result = subprocess.run(
-                    cmd_decrypt_audio,
+                    cmd,
                     capture_output=True,
                     text=True,
                     shell=True,
@@ -697,11 +698,11 @@ class DAnimeDownloader:
                     "0:v:0",
                     "-map",
                     "1:a:0",
-                    output_path,
+                    f'"{output_path}"',
                 ]
-
+                cmd = " ".join(cmd_merge)
                 result = subprocess.run(
-                    cmd_merge,
+                    cmd,
                     capture_output=True,
                     text=True,
                     shell=True,
