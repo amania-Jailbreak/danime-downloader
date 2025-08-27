@@ -123,7 +123,6 @@ class DAnimeDownloader:
             pbar.update(5)
 
         data = response.json()
-
         if pbar:
             pbar.update(5)
 
@@ -305,8 +304,12 @@ class DAnimeDownloader:
             pbar.update(3)
 
         if not pssh_data:
-            print("Error: PSSH not found")
-            return key_id, None
+            req = requests.get("https://pssh.amania.jp/pssh?kid=" + key_id)
+            if req.status_code == 200:
+                pssh_data = req.json().get("pssh")
+                return key_id, pssh_data
+            else:
+                return key_id, None
 
         return key_id, pssh_data
 
@@ -642,7 +645,6 @@ class DAnimeDownloader:
                         ["--key", f"{key_info['kid']}:{key_info['key']}"]
                     )
                 cmd_decrypt_video.extend([encrypted_video, decrypted_video])
-
                 result = subprocess.run(
                     cmd_decrypt_video,
                     capture_output=True,

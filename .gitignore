@@ -60,3 +60,5 @@ output/
 # Temporary files
 *.tmp
 *.temp
+
+cookie.txt
