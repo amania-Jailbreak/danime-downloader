@@ -12,7 +12,7 @@ jobs:
     build:
         strategy:
             matrix:
-                os: [windows-latest, ubuntu-latest, macos-latest]
+                os: [windows-latest, ubuntu-latest, macos-intel, macos-arm64]
                 include:
                     - os: windows-latest
                       executable_name: DAnimeDownloader.exe
@@ -20,11 +20,13 @@ jobs:
                     - os: ubuntu-latest
                       executable_name: DAnimeDownloader
                       artifact_name: DAnimeDownloader-linux
-                    - os: macos-latest
+                    - os: macos-intel
                       executable_name: DAnimeDownloader
-                      artifact_name: DAnimeDownloader-macos
-
-        runs-on: ${{ matrix.os }}
+                      artifact_name: DAnimeDownloader-macos-x86_64
+                    - os: macos-arm64
+                      executable_name: DAnimeDownloader
+                      artifact_name: DAnimeDownloader-macos-arm64
+        runs-on: ${{ matrix.os == 'macos-intel' && 'macos-13' || matrix.os == 'macos-arm64' && 'macos-latest' || matrix.os }}
 
         steps:
             - name: Checkout code
@@ -42,7 +44,7 @@ jobs:
                   sudo apt-get install -y ffmpeg
 
             - name: Install system dependencies (macOS)
-              if: matrix.os == 'macos-latest'
+              if: startsWith(matrix.os, 'macos-')
               run: |
                   brew install ffmpeg
 
@@ -52,69 +54,21 @@ jobs:
                   pip install -r requirements.txt
                   pip install pyinstaller
 
-            - name: Create PyInstaller spec file
-              shell: bash
+            - name: Build executable with PyInstaller (macOS-specific)
+              if: startsWith(matrix.os, 'macos-')
               run: |
-                  cat > DAnimeDownloader.spec << 'EOF'
-                  # -*- mode: python ; coding: utf-8 -*-
-
-                  block_cipher = None
-
-                  a = Analysis(
-                      ['main.py'],
-                      pathex=[],
-                      binaries=[],
-                      datas=[],
-                      hiddenimports=[
-                          'pywidevine',
-                          'pywidevine.cdm',
-                          'pywidevine.device',
-                          'pywidevine.pssh',
-                          'bs4',
-                          'requests',
-                          'tqdm',
-                          'xml.etree.ElementTree',
-                          'unicodedata',
-                      ],
-                      hookspath=[],
-                      hooksconfig={},
-                      runtime_hooks=[],
-                      excludes=[],
-                      win_no_prefer_redirects=False,
-                      win_private_assemblies=False,
-                      cipher=block_cipher,
-                      noarchive=False,
-                  )
-
-                  pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-
-                  exe = EXE(
-                      pyz,
-                      a.scripts,
-                      a.binaries,
-                      a.zipfiles,
-                      a.datas,
-                      [],
-                      name='${{ matrix.executable_name }}',
-                      debug=False,
-                      bootloader_ignore_signals=False,
-                      strip=False,
-                      upx=True,
-                      upx_exclude=[],
-                      runtime_tmpdir=None,
-                      console=True,
-                      disable_windowed_traceback=False,
-                      argv_emulation=False,
-                      target_arch=None,
-                      codesign_identity=None,
-                      entitlements_file=None,
-                      icon=None,
-                  )
-                  EOF
-
-            - name: Build executable with PyInstaller
+                  # PyInstallerのtargetオプションでアーキテクチャを指定
+                  ARCHIVE_FILE="${{ matrix.executable_name }}"
+                  if [ "${{ matrix.os }}" == "macos-intel" ]; then
+                      pyinstaller main.py --target-architecture x86_64 --onefile --name "${ARCHIVE_FILE}"
+                  else
+                      pyinstaller main.py --target-architecture arm64 --onefile --name "${ARCHIVE_FILE}"
+                  fi
+              
+            - name: Build executable with PyInstaller (non-macOS)
+              if: startsWith(matrix.os, 'macos-') == false
               run: |
-                  pyinstaller DAnimeDownloader.spec
+                  pyinstaller main.py --onefile --name "${{ matrix.executable_name }}"
 
             - name: Test executable (Windows)
               if: matrix.os == 'windows-latest'
@@ -122,22 +76,53 @@ jobs:
                   dist\${{ matrix.executable_name }} --help
 
             - name: Test executable (Unix)
-              if: matrix.os != 'windows-latest'
+              if: matrix.os != 'windows-latest' && startsWith(matrix.os, 'macos-') == false
               run: |
                   chmod +x dist/${{ matrix.executable_name }}
                   ./dist/${{ matrix.executable_name }} --help
 
-            - name: Upload artifact
+            - name: Upload macOS artifact
+              if: startsWith(matrix.os, 'macos-')
               uses: actions/upload-artifact@v4
               with:
                   name: ${{ matrix.artifact_name }}
                   path: dist/${{ matrix.executable_name }}
 
-            - name: Upload to Release
-              if: startsWith(github.ref, 'refs/tags/')
+            - name: Upload other artifacts
+              if: startsWith(matrix.os, 'macos-') == false
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ matrix.artifact_name }}
+                  path: dist/${{ matrix.executable_name }}
+
+    create_universal_binary:
+        needs: build
+        if: startsWith(github.ref, 'refs/tags/')
+        runs-on: macos-latest
+        steps:
+            - name: Download x86_64 artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: DAnimeDownloader-macos-x86_64
+                  path: ./build/x86_64
+
+            - name: Download arm64 artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: DAnimeDownloader-macos-arm64
+                  path: ./build/arm64
+
+            - name: Create universal binary
+              run: |
+                  UNIVERSAL_EXECUTABLE="DAnimeDownloader-macos"
+                  lipo -create -output "${UNIVERSAL_EXECUTABLE}" ./build/x86_64/DAnimeDownloader ./build/arm64/DAnimeDownloader
+                  chmod +x "${UNIVERSAL_EXECUTABLE}"
+                  mv "${UNIVERSAL_EXECUTABLE}" ./dist/
+
+            - name: Upload universal binary to release
               uses: softprops/action-gh-release@v1
               with:
-                  files: dist/${{ matrix.executable_name }}
+                  files: dist/DAnimeDownloader-macos
                   draft: false
                   prerelease: false
               env:
