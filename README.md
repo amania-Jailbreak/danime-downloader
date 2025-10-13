@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # DAnime Downloader
 
 d アニメストアから mp4 ファイルをダウンロードします
@@ -14,8 +13,7 @@ d アニメストアから mp4 ファイルをダウンロードします
 ### 必要なソフトウェア
 
 1. **Python 3.7+**
-2. **FFmpeg** - 動画・音声の結合用
-3. **mp4decrypt** (Bento4) - DRM コンテンツの復号化用
+2. **FFmpeg** - 動画・音声の結合およびDRM コンテンツの復号化用
 
 ### Python ライブラリ
 
@@ -47,13 +45,11 @@ pip install -r requirements.txt
 **FFmpeg:**
 
 -   Windows: https://ffmpeg.org/download.html からダウンロード
+    - もしくはWingetからインストール: `winget install Gyan.FFmpeg`
 -   macOS: `brew install ffmpeg`
 -   Linux: `sudo apt install ffmpeg`
+<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=6 orderedList=false} -->
 
-**mp4decrypt (Bento4):**
-
--   https://github.com/axiomatic-systems/Bento4 からダウンロード
--   実行可能ファイルを PATH に追加
 
 4. Widevine デバイスファイル（`device.wvd`）を配置
 
@@ -240,10 +236,6 @@ DAnimePlus/
 
     - ログインセッションが有効であることを確認
     - コンテンツが利用可能であることを確認
-
-4. **"FFmpeg/mp4decrypt not found"**
-
-    - 必要なツールがインストールされ、PATH に追加されていることを確認
 
 ### デバッグ
 
@@ -455,7 +447,7 @@ python main.py 22435 -c "cookies"
 
 ## クッキーの取得方法
 
-1. ブラウザで d アニメ にログイン
+1. ブラウザで dアニメストア にログイン
 2. 開発者ツールを開く（F12）
 3. Network タブを選択
 4. 任意のページをリロード
@@ -511,10 +503,6 @@ DAnimePlus/
     - ログインセッションが有効であることを確認
     - コンテンツが利用可能であることを確認
 
-4. **"FFmpeg/mp4decrypt not found"**
-
-    - 必要なツールがインストールされ、PATH に追加されていることを確認
-
 5. **"PSSH not found"**
     - d アニ初期に追加されたアニメは PlayReady 方式で暗号化されていますが このツールは対応していません
 
@@ -523,14 +511,14 @@ DAnimePlus/
 プログレスバーとエラーメッセージが詳細な情報を提供します。問題が発生した場合は、以下を確認してください：
 
 1. インターネット接続
-2. DAnime Store へのアクセス権限
+2. dアニメストアへのアクセス権限
 3. 必要なファイルとツールの存在
 4. クッキーの有効性
 
 ## 法的事項
 
--   d アニメストアは、KDDI 株式会社の商標です。
--   本ソフトウェアは KDDI 及び Docomo と関係がなく非公式なものです
+-   dアニメストアは、株式会社NTTドコモの商標です。
+-   本ソフトウェアはNTTドコモと関係がなく非公式なものです
 -   著作権法を遵守してください
 -   個人的な使用のみに留めてください
 
@@ -542,4 +530,3 @@ PlayReady の対応のリクエスト待ってます
 ## 免責事項
 
 このソフトウェアの使用により生じるいかなる損害についても、開発者は責任を負いません。ユーザーの責任で使用してください。
->>>>>>> 3143c780fccd953571d8798b13447f2be221b128
