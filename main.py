@@ -614,9 +614,9 @@ class DAnimeDownloader:
             cmd_merge = [
                 "ffmpeg",
                 "-y",
-                "-decryption_key", f"{content_key_info["key"]}",
+                "-decryption_key", content_key_info["key"],
                 "-i", video_url,
-                "-decryption_key", f"{content_key_info["key"]}",
+                "-decryption_key", content_key_info["key"],
                 "-i", audio_url,
                 "-c", "copy",
                 "-map", "0:v:0",
@@ -959,3 +959,4 @@ You can save cookies to a text file and use --cookies-file option for convenienc
 
 if __name__ == "__main__":
     main()
+
