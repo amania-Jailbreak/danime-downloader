@@ -587,136 +587,60 @@ class DAnimeDownloader:
             return False
 
         try:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                # Define file paths
-                encrypted_video = os.path.join(temp_dir, "encrypted_video.mp4")
-                encrypted_audio = os.path.join(temp_dir, "encrypted_audio.mp4")
-                decrypted_video = os.path.join(temp_dir, "decrypted_video.mp4")
-                decrypted_audio = os.path.join(temp_dir, "decrypted_audio.mp4")
+            selected_video, selected_audio = self.select_best_quality(
+                mpd_url, target_resolution, pbar
+            )
 
-                # Select best quality video and audio
-                selected_video, selected_audio = self.select_best_quality(
-                    mpd_url, target_resolution, pbar
-                )
+            if not selected_video or not selected_audio:
+                print("Error: Cannot select quality")
+                return False
 
-                if not selected_video or not selected_audio:
-                    print("Error: Cannot select quality")
-                    return False
+            video_url = selected_video["url"]
+            audio_url = selected_audio["url"]
 
-                video_url = selected_video["url"]
-                audio_url = selected_audio["url"]
+            if pbar:
+                pbar.update(10)
 
-                if pbar:
-                    pbar.update(10)
+            # Download video and audio directly using selected URLs
+            if pbar:
+                pbar.set_description("Downloading(Decrypting) video & audio")
 
-                # Download video and audio directly using selected URLs
-                if pbar:
-                    pbar.set_description("Downloading video")
+            headers = {"User-Agent": USER_AGENT}
+            if self.cookies:
+                headers["Cookie"] = self.cookies
 
-                headers = {"User-Agent": USER_AGENT}
-                if self.cookies:
-                    headers["Cookie"] = self.cookies
+            content_key_info = next((key_info for key_info in keys if key_info["type"] == "CONTENT"), None)
 
-                with self.session.get(video_url, stream=True, headers=headers) as r:
-                    r.raise_for_status()
-                    with open(encrypted_video, "wb") as f:
-                        for chunk in r.iter_content(chunk_size=8192):
-                            f.write(chunk)
+            cmd_merge = [
+                "ffmpeg",
+                "-y",
+                "-decryption_key", content_key_info["key"],
+                "-i", video_url,
+                "-decryption_key", content_key_info["key"],
+                "-i", audio_url,
+                "-c", "copy",
+                "-map", "0:v:0",
+                "-map", "1:a:0",
+                f'"{output_path}"',
+            ]
+            
+            cmd = " ".join(cmd_merge)
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                shell=True,
+                encoding="utf-8",
+                errors="ignore",
+            )
+            if result.returncode != 0:
+                print(f"Merge error: {result.stderr}")
+                return False
 
-                if pbar:
-                    pbar.update(25)
-                    pbar.set_description("Downloading audio")
+            if pbar:
+                pbar.update(10)
 
-                with self.session.get(audio_url, stream=True, headers=headers) as r:
-                    r.raise_for_status()
-                    with open(encrypted_audio, "wb") as f:
-                        for chunk in r.iter_content(chunk_size=8192):
-                            f.write(chunk)
-
-                if pbar:
-                    pbar.update(25)
-
-                if pbar:
-                    pbar.set_description("Decrypting video")
-
-                cmd_decrypt_video = ["mp4decrypt"]
-                for key_info in keys:
-                    cmd_decrypt_video.extend(
-                        ["--key", f"{key_info['kid']}:{key_info['key']}"]
-                    )
-                cmd_decrypt_video.extend([encrypted_video, decrypted_video])
-                cmd = " ".join(cmd_decrypt_video)
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    shell=True,
-                    encoding="utf-8",
-                    errors="ignore",
-                )
-                if result.returncode != 0:
-                    print(f"Video decrypt error: {result.stderr}")
-                    return False
-
-                if pbar:
-                    pbar.update(15)
-                    pbar.set_description("Decrypting audio")
-
-                cmd_decrypt_audio = ["mp4decrypt"]
-                for key_info in keys:
-                    cmd_decrypt_audio.extend(
-                        ["--key", f"{key_info['kid']}:{key_info['key']}"]
-                    )
-                cmd_decrypt_audio.extend([encrypted_audio, decrypted_audio])
-                cmd = " ".join(cmd_decrypt_audio)
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    shell=True,
-                    encoding="utf-8",
-                    errors="ignore",
-                )
-                if result.returncode != 0:
-                    print(f"Audio decrypt error: {result.stderr}")
-                    return False
-
-                if pbar:
-                    pbar.update(15)
-                    pbar.set_description("Merging video and audio")
-
-                cmd_merge = [
-                    "ffmpeg",
-                    "-y",
-                    "-i",
-                    decrypted_video,
-                    "-i",
-                    decrypted_audio,
-                    "-c",
-                    "copy",
-                    "-map",
-                    "0:v:0",
-                    "-map",
-                    "1:a:0",
-                    f'"{output_path}"',
-                ]
-                cmd = " ".join(cmd_merge)
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    shell=True,
-                    encoding="utf-8",
-                    errors="ignore",
-                )
-                if result.returncode != 0:
-                    print(f"Merge error: {result.stderr}")
-                    return False
-
-                if pbar:
-                    pbar.update(10)
-
-                return True
+            return True
 
         except Exception as e:
             print(f"Download error: {e}")
@@ -1035,3 +959,4 @@ You can save cookies to a text file and use --cookies-file option for convenienc
 
 if __name__ == "__main__":
     main()
+
